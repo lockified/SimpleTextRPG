@@ -1,0 +1,130 @@
+#simple text rpg by locKified
+
+import sys
+import random
+import math
+
+class Person(object):
+    def __init__(self, name, coords): #initializes origin for location
+        self.name = name
+        self.LocX = coords[0]
+        self.LocY = coords[1]
+    def getName(self):
+        return self.name
+    def getCoords(self): #returns coordinates in a tuple
+        return (self.LocX, self.LocY)
+    def getLocX(self): #returns x axis location
+        return self.LocX
+    def getLocY(self): #returns y axis location
+        return self.LocY
+    def move(self, x, y): #moves by x,y units
+        self.LocX += x
+        self.LocY += y
+    def getName(self): #returns Person's name
+        return self.name
+    def isNear(self, other): # calculates whether the Person object is close or not to another Person object
+        if self.getLocX() == other.getLocX() and math.fabs(self.getLocY() - other.getLocY()) == 1: #hero must be standing near to NPC ie. 1 units away
+            return True
+        elif self.getLocY() == other.getLocY() and math.fabs(self.getLocX() - other.getLocX()) == 1: 
+            return True
+        else:
+            return False
+    def __str__(self):
+        return self.name
+
+class NPC(Person):
+    def __init__(self, name, coords, f): #initializes origin for location
+        self.name = name
+        self.LocX = coords[0]
+        self.LocY = coords[1]
+        self.f = f
+    def getDialogue(self):
+        f = open(self.f, "r")
+        dialogue = random.choice(list(f))
+        return dialogue
+    
+class Fighter(Person):
+    def __init__(self, name, coords, stats): #stats in form of [HP, MP, Atk, Def, Crit, Speed, Evade, Exp, Gold, Level]
+        self.name = name
+        self.LocX = coords[0]
+        self.LocY = coords[1]
+        self.Stats = {"HP": stats[0], "MP": stats[1], "Atk": stats[2], "Def": stats[3], "Crit": stats[4], "Speed": stats[5], "Evade": stats[6], "Exp": stats[7], "Gold": stats[8], "Level": stats[9]}
+        self.CurrentHP = self.Stats["HP"]
+        self.CurrentMP = self.Stats["MP"]
+        self.Skills = {} # dict key = name of skill, dict value = [type, base formula, MPusage, associated battle msg]
+        self.Potential = {} #as above, dictates what abilities learned at _ level
+    def getStat(self, stat):
+        return self.Stats[stat]
+    def setHP(self, val):
+        self.CurrentHP += val #CurrentHP is not equal to selfStats["HP"], as this represent current vs max
+    def setMP(self, val): #as above
+        self.CurrentMP += val
+    def Attack(self, enemy):
+        damage = round(random.uniform(0.75, 1)*(self.getStat("Atk") - enemy.getStat("Def")))  # 0.75*applicable damage factor rounded to nearest int
+        #indirectly modified by Hero's weapon/armor strength and directly modified by certain abilities, cant crit if attacks misses first
+        if random.random() > enemy.getStat("Evade"): #if higher, attack lands, else attack misses, Evade stat is the main factor for dodging attacks
+            if random.random() < self.getStat("Crit"):#if lower, do 2x damage than usual
+                enemy.setHP(-damage*2)
+                print("{} dealt a devastating blow! It did {} damage to {}!".format(self.name, damage*2, enemy.getName()))
+            else:
+                enemy.setHP(-damage)
+                print("{} attacks! It did {} damage to {}!".format(self.name, damage, enemy.getName()))
+        else:
+            print("{} attacks! It missed!".format(self.name))
+    def useSkill(self, skill, target):
+        if self.Skills[skill]["Type"] == "damage":
+            damage = round(random.uniform(0.75, 1)*(self.Skills[skill]["Base"]*self.getStat("Atk") - target.getStat("Def")))  #base acts as a modifier 
+            target.setHP(-damage)
+            print("{} used {}! {} ".format(self.name, self.Skills[skill]["Name"], self.Skills[skill]["Msg"]))
+            print("It dealt {} damage to {}.".format(damage, target.GetName()))
+        if self.Skills[skill]["Type"] == "stat":
+            pass #not completed
+    def checkDead(self):
+        return self.CurrentHP <= 0
+class Hero(Fighter):
+    def __init__(self, name, coords, stats, potential):
+        self.name = name
+        self.LocX = coords[0]
+        self.LocY = coords[1]
+        self.Stats = {"HP": stats[0], "MP": stats[1], "Atk": stats[2], "Def": stats[3], "Crit": stats[4], "Speed": stats[5], "Evade": stats[6], "Exp": stats[7], "Gold": stats[8], "Level": stats[9]}
+        self.CurrentHP = self.Stats["HP"]
+        self.CurrentMP = self.Stats["MP"]
+        self.Skills = {} # dict key = name of skill, dict value = [type, base formula, MPusage, associated battle msg]
+    def Talk(self, target):
+        if self.isNear(target) and type(target) == NPC:
+            print("{}: {}".format(target.getName(), target.getDialogue()))
+        else:
+            print("No one to talk to!")
+    def addSkill(self, skill): # dict key = name of skill, dict value = [type, base formula, MPusage, associated battle msg]
+        self.Skills[skill[0]] = {"Type":skill[1], "Base":skill[2], "MP":skill[3], "Msg":skill[4]}
+    def gainSkill(self):
+        pass
+    def LevelUp(self):
+        while self.Stats["Exp"] > 5**(self.Stats["Level"]):
+            self.Stats["Level"] += 1
+            self.gainSkill()
+    def checkVictory(self, enemy):
+        if enemy.checkDead():
+            print("{} has been slain!".format(enemy.name))
+            self.Stats["Exp"] += enemy.getStat("Exp")
+            self.Stats["Gold"] += enemy.getStat("Gold")
+            print("You have gained {} experience points and {} gold!".format(enemy.getStat("Exp"), enemy.getStat("Gold")))
+            self.LevelUp()
+    def GameOver(self):
+        if self.checkDead():
+            print("Hero {} has been slain! Game over!".format(self.name))
+class Enemy(Fighter):
+    pass
+class Item(object):
+    pass
+class Inventory(object):
+    pass
+
+def main():
+    print("Welcome to Simple Text RPG by locKified!")
+    try:
+        name = Enter("Enter the name of your hero: ")
+    except:
+        print("Invalid name. Please try again.")
+    while True:
+        pass
